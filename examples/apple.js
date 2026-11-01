@@ -20,6 +20,9 @@ const [CLIENT_ID, TEAM_ID, PRIVATE_KEY, KEY_ID] = ['<CLIENT_ID>', '<TEAM_ID>', '
 // In Apple OAuth2 the CLIENT_SECRET is not static and must be generated
 const CLIENT_SECRET = generateClientSecret()
 
+// Apple posts the authorization result as application/x-www-form-urlencoded
+fastify.register(require('@fastify/formbody'))
+
 fastify.register(oauthPlugin, {
   name: 'appleOAuth2',
   credentials: {
@@ -37,11 +40,23 @@ fastify.register(oauthPlugin, {
       authorizationMethod: 'body'
     }
   },
+  // Requesting `name` or `email` makes Apple use `response_mode=form_post`
+  scope: ['name', 'email'],
   startRedirectPath: '/login/apple',
-  callbackUri: 'http://localhost:3000/login/apple/callback'
+  // Apple only accepts HTTPS redirect URIs registered for your Service ID
+  callbackUri: 'https://<YOUR_DOMAIN>/login/apple/callback',
+  /**
+   * The callback is a cross-site POST from appleid.apple.com, and browsers do not
+   * send `SameSite=Lax` cookies with it. Without `SameSite=None` the state cookie
+   * is missing at the callback and the state check fails.
+   */
+  cookie: {
+    sameSite: 'none',
+    secure: true
+  }
 })
 
-fastify.get('/login/apple/callback', function (request, reply) {
+fastify.post('/login/apple/callback', function (request, reply) {
   /**
    * NOTE: Apple returns the "user" object only the 1st time the user authorizes the app.
    * For more information, visit https://developer.apple.com/documentation/sign_in_with_apple/sign_in_with_apple_rest_api/authenticating_users_with_sign_in_with_apple
@@ -57,10 +72,11 @@ fastify.get('/login/apple/callback', function (request, reply) {
     throw new Error('Illegal invoking of endpoint.')
   }
 
-  if (error === Error.CancelledAuth) {
-    // If a user cancelled authorization process, redirect him back to the app
+  if (error === 'user_cancelled_authorize') {
+    // The user cancelled the authorization process, redirect them back to the app
     const webClientUrl = '<WEB_CLIENT_URL>'
-    reply.status(303).redirect(webClientUrl)
+    reply.redirect(webClientUrl, 303)
+    return
   }
 
   const authCodeFlow = { ...request, query: { code, state } }
