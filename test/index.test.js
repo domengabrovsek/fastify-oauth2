@@ -2012,7 +2012,7 @@ test('already decorated', t => {
 })
 
 test('preset configuration generate-callback-uri-params', async t => {
-  t.plan(3)
+  t.plan(4)
 
   await t.test('array scope', (t, end) => {
     const fastify = createFastify({ logger: { level: 'silent' } })
@@ -2126,6 +2126,45 @@ test('preset configuration generate-callback-uri-params', async t => {
         t.assert.strictEqual(responseStart.statusCode, 302)
         const matched = responseStart.headers.location.match(/https:\/\/appleid\.apple\.com\/auth\/authorize\?response_type=code&client_id=my-client-id&redirect_uri=%2Fcallback&scope=&state=(.*)/)
         t.assert.ok(matched)
+        end()
+      })
+    })
+  })
+
+  await t.test('undefined scope', (t, end) => {
+    const fastify = createFastify({ logger: { level: 'silent' } })
+
+    fastify.register(fastifyOauth2, {
+      name: 'the-name',
+      credentials: {
+        client: {
+          id: 'my-client-id',
+          secret: 'my-secret'
+        },
+        auth: fastifyOauth2.APPLE_CONFIGURATION,
+        options: {
+          authorizationMethod: 'body'
+        }
+      },
+      startRedirectPath: '/login/apple',
+      callbackUri: '/callback'
+    })
+
+    after(() => fastify.close())
+
+    fastify.listen({ port: 0 }, function (err) {
+      t.assert.ifError(err)
+
+      fastify.inject({
+        method: 'GET',
+        url: '/login/apple'
+      }, function (err, responseStart) {
+        t.assert.ifError(err)
+
+        t.assert.strictEqual(responseStart.statusCode, 302)
+        const location = new URL(responseStart.headers.location)
+        t.assert.strictEqual(location.searchParams.has('response_mode'), false)
+        t.assert.strictEqual(location.searchParams.has('scope'), false)
         end()
       })
     })
