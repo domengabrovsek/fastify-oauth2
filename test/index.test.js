@@ -2164,6 +2164,7 @@ test('preset configuration generate-callback-uri-params', async t => {
         t.assert.strictEqual(responseStart.statusCode, 302)
         const location = new URL(responseStart.headers.location)
         t.assert.strictEqual(location.searchParams.has('response_mode'), false)
+        t.assert.strictEqual(location.searchParams.has('scope'), false)
         end()
       })
     })

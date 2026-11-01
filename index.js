@@ -264,7 +264,7 @@ function fastifyOauth2 (fastify, options, next) {
 
         const urlOptions = Object.assign({}, generateCallbackUriParams(callbackUriParams, request, scope, state), {
           redirect_uri: typeof callbackUri === 'function' ? callbackUri(request) : callbackUri,
-          scope,
+          ...(scope === undefined ? {} : { scope }),
           state
         }, pkceParams)
 
