@@ -685,7 +685,7 @@ fastifyOauth2.APPLE_CONFIGURATION = {
   // Symbol used in here because we would not like the user to modify this behavior and
   // do not want to mess up with property name collision
   [kGenerateCallbackUriParams]: function (callbackUriParams, _requestObject, scope, _state) {
-    const stringifyScope = Array.isArray(scope) ? scope.join(' ') : scope
+    const stringifyScope = Array.isArray(scope) ? scope.join(' ') : (scope ?? '')
     // This behavior is not documented on Apple Developer Docs, but it displays through runtime error.
     // Related Docs: https://developer.apple.com/documentation/sign_in_with_apple/sign_in_with_apple_js/incorporating_sign_in_with_apple_into_other_platforms
     // Related Issue: https://github.com/fastify/fastify-oauth2/issues/116
